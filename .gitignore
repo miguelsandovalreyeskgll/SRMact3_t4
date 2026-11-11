@@ -1,0 +1,13 @@
+# Archivos que no deben subirse a GitHub
+.gradle/
+build/
+out/
+*.log
+.env
+*.env
+local.properties
+.idea/
+.vscode/
+.classpath
+.project
+.settings/
