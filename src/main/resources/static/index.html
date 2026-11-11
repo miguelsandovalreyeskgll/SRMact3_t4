@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12284b">
+  <meta name="description" content="Panel de gestión de alumnos y escuelas de la Actividad 3.">
+  <title>SRM · Gestión escolar</title>
+  <link rel="stylesheet" href="/css/srm.css">
+  <script src="/js/srm.js" defer></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="Inicio de SRM Gestión Escolar">
+        <span class="brand-icon" aria-hidden="true">S</span>
+        <span><strong>SRM</strong><small>GESTIÓN ESCOLAR</small></span>
+      </a>
+      <div class="menu-caption">ESPACIO DE TRABAJO</div>
+      <nav class="navigation" aria-label="Módulos del sistema">
+        <button id="navAlumnos" type="button" class="nav-link active" data-tab="alumnos" aria-current="page"><span class="nav-icon" aria-hidden="true">▦</span> Alumnos</button>
+        <button id="navEscuelas" type="button" class="nav-link" data-tab="escuelas"><span class="nav-icon" aria-hidden="true">▤</span> Escuelas</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="api-indicator"><span class="status-dot" id="statusDot"></span><span id="apiStatus">Verificando conexión...</span></div>
+        <p>Actividad 3 · Programación Web<br>Spring Boot + MySQL</p>
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar"><span>Panel de administración <span class="slash">/</span> <strong id="rutaActual">Alumnos</strong></span><span class="topbar-right">CRUD · Relación 1:N</span></header>
+      <div class="main-inner">
+        <div class="page-intro">
+          <div><span class="eyebrow">ACTIVIDAD 3 · SISTEMA ACADÉMICO</span><h1 id="tituloPagina">Gestión de alumnos</h1><p id="subtituloPagina">Administra registros de estudiantes y su escuela asignada desde un solo lugar.</p></div>
+          <button class="btn btn-primary" id="btnPrincipal" type="button">+ Nuevo alumno</button>
+        </div>
+
+        <section class="statistics" aria-label="Estadísticas del sistema">
+          <article class="stat-card"><span class="stat-label">Alumnos registrados</span><strong id="totalAlumnos">—</strong><span class="stat-desc">Estudiantes en la base de datos</span></article>
+          <article class="stat-card"><span class="stat-label">Escuelas registradas</span><strong id="totalEscuelas">—</strong><span class="stat-desc">Instituciones disponibles</span></article>
+          <article class="stat-card"><span class="stat-label">Relación de datos</span><strong>1 : N</strong><span class="stat-desc">Una escuela, varios alumnos</span></article>
+        </section>
+
+        <div id="notificacion" class="notification" role="status" aria-live="polite" hidden></div>
+
+        <section id="vistaAlumnos" aria-label="Administración de alumnos">
+          <div class="workspace">
+            <div class="panel">
+              <div class="panel-header"><div><h2>Listado de alumnos</h2><p>Consulta, edita y elimina los registros existentes.</p></div><button id="btnActualizarAlumnos" type="button" class="btn btn-outline">Actualizar</button></div>
+              <div class="toolbar"><label for="buscarAlumno" class="sr-only">Buscar alumnos</label><input id="buscarAlumno" type="search" placeholder="Buscar por nombre o escuela..." autocomplete="off"><span id="contadorAlumnos" class="count-chip">0 resultados</span></div>
+              <div class="table-scroll"><table><thead><tr><th>ID</th><th>Alumno</th><th>Escuela asignada</th><th class="action-col">Acciones</th></tr></thead><tbody id="tablaAlumnos"><tr><td colspan="4" class="empty-state">Cargando alumnos...</td></tr></tbody></table></div>
+            </div>
+
+            <div class="panel form-panel" id="panelAlumno">
+              <div class="panel-header"><div><span class="mini-label">FORMULARIO</span><h2 id="tituloFormularioAlumno">Registrar alumno</h2><p id="subtituloFormularioAlumno">Completa los campos para crear un nuevo registro.</p></div></div>
+              <form id="formAlumno">
+                <input type="hidden" id="alumnoId" name="alumnoId">
+                <div class="field"><label for="alumnoNombre">Nombre del alumno <span aria-hidden="true">*</span></label><input id="alumnoNombre" name="nombre" type="text" minlength="1" maxlength="150" placeholder="Ej. Ana López" required><small>Nombre completo del estudiante.</small></div>
+                <div class="field"><label for="alumnoEscuela">Escuela <span aria-hidden="true">*</span></label><select id="alumnoEscuela" name="escuelaId" required><option value="">Cargando escuelas...</option></select><small>La escuela debe existir antes de registrar al alumno.</small></div>
+                <div class="hint" id="avisoSinEscuelas" hidden>Primero registra una escuela en el módulo <strong>Escuelas</strong>.</div>
+                <div class="form-actions"><button type="submit" class="btn btn-primary" id="guardarAlumno">Guardar alumno</button><button type="button" class="btn btn-outline" id="cancelarAlumno">Limpiar</button></div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section id="vistaEscuelas" aria-label="Administración de escuelas" hidden>
+          <div class="workspace">
+            <div class="panel">
+              <div class="panel-header"><div><h2>Escuelas registradas</h2><p>Instituciones disponibles para vincular a los alumnos.</p></div><button id="btnActualizarEscuelas" type="button" class="btn btn-outline">Actualizar</button></div>
+              <div class="toolbar"><label for="buscarEscuela" class="sr-only">Buscar escuelas</label><input id="buscarEscuela" type="search" placeholder="Buscar institución..." autocomplete="off"><span id="contadorEscuelas" class="count-chip">0 resultados</span></div>
+              <div class="table-scroll"><table><thead><tr><th>ID</th><th>Institución</th><th>Alumnos asociados</th></tr></thead><tbody id="tablaEscuelas"><tr><td colspan="3" class="empty-state">Cargando escuelas...</td></tr></tbody></table></div>
+            </div>
+            <div class="panel form-panel" id="panelEscuela">
+              <div class="panel-header"><div><span class="mini-label">FORMULARIO</span><h2>Registrar escuela</h2><p>Crea una institución para asociar estudiantes.</p></div></div>
+              <form id="formEscuela">
+                <div class="field"><label for="escuelaNombre">Nombre de la escuela <span aria-hidden="true">*</span></label><input id="escuelaNombre" name="nombre" type="text" maxlength="150" placeholder="Ej. Instituto Tecnológico de Oaxaca" required><small>Después podrás seleccionarla al registrar alumnos.</small></div>
+                <div class="form-actions"><button type="submit" class="btn btn-primary" id="guardarEscuela">Guardar escuela</button><button type="reset" class="btn btn-outline">Limpiar</button></div>
+              </form>
+              <p class="info-footnote">La API actual permite listar y crear escuelas. No expone editar ni eliminar escuelas.</p>
+            </div>
+          </div>
+        </section>
+        <footer class="footer">SRM · Actividad 3 · Spring Boot · JPA · MySQL <span>Los cambios se guardan en la base de datos conectada a la API.</span></footer>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="modalDetalle" class="detail-dialog" aria-labelledby="tituloDetalle">
+    <div class="dialog-header"><h2 id="tituloDetalle">Detalle del alumno</h2><button type="button" class="icon-button" id="cerrarDetalle" aria-label="Cerrar detalle">×</button></div>
+    <dl><div><dt>ID</dt><dd id="detalleId"></dd></div><div><dt>Nombre completo</dt><dd id="detalleNombre"></dd></div><div><dt>Escuela</dt><dd id="detalleEscuela"></dd></div><div><dt>ID de escuela</dt><dd id="detalleEscuelaId"></dd></div></dl>
+    <div class="dialog-footer"><button type="button" class="btn btn-primary" id="editarDesdeDetalle">Editar este alumno</button><button type="button" class="btn btn-outline" id="volverDetalle">Cerrar</button></div>
+  </dialog>
+</body>
+</html>
