@@ -1,0 +1,19 @@
+meta {
+  name: Actualizar alumno
+  type: http
+  seq: 6
+}
+
+put {
+  url: http://localhost:8083/api/alumnos/2
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {"nombre":"Ana Lopez ","escuelaId":1}
+}

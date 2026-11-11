@@ -1,0 +1,19 @@
+meta {
+  name: Crear alumno
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8083/api/alumnos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {"nombre":"Miguel Sandoval","escuelaId":1}
+}

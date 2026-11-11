@@ -1,0 +1,49 @@
+ACTIVIDAD 3 - PRUEBAS EN BRUNO (REST + MYSQL)
+
+BASE VPS:   http://167.99.15.140:8083
+BASE LOCAL: http://localhost:8083
+
+PARA TODOS LOS POST/PUT: Body -> JSON, encabezado Content-Type: application/json
+
+PASO 1. CREAR ESCUELA
+POST http://167.99.15.140:8083/api/escuelas
+{
+  "nombre": "Instituto Tecnologico de Oaxaca"
+}
+Respuesta: 201 Created. Apunta el id generado (ejemplo 1).
+
+PASO 2. VER ESCUELAS
+GET http://167.99.15.140:8083/api/escuelas
+
+PASO 3. CREAR ALUMNO
+POST http://167.99.15.140:8083/api/alumnos
+{
+  "nombre": "Ana Lopez",
+  "escuelaId": 1
+}
+IMPORTANTE: cambia escuelaId por el id real del PASO 1.
+Respuesta: 201 Created con escuelaNombre incluido.
+
+PASO 4. LEER ALUMNOS
+GET http://167.99.15.140:8083/api/alumnos
+GET http://167.99.15.140:8083/api/alumnos/1
+IMPORTANTE: cambia 1 por el id real del alumno.
+
+PASO 5. ACTUALIZAR ALUMNO
+PUT http://167.99.15.140:8083/api/alumnos/1
+{
+  "nombre": "Ana Lopez Actualizada",
+  "escuelaId": 1
+}
+IMPORTANTE: usa los ids reales.
+Respuesta: 200 OK con los nuevos datos.
+
+PASO 6. ELIMINAR ALUMNO
+DELETE http://167.99.15.140:8083/api/alumnos/1
+Respuesta: 204 No Content. El GET por ese id luego devuelve 404.
+
+PASO 7. COMPROBAR PERSISTENCIA
+Crea un alumno, detén/reinicia Spring Boot, vuelve a hacer GET /api/alumnos.
+El registro debe continuar en MySQL hasta que lo elimines.
+
+Si vas a probar LOCAL, sustituye 167.99.15.140 por localhost.

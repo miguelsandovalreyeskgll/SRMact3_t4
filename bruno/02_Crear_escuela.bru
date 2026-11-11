@@ -1,0 +1,19 @@
+meta {
+  name: Crear escuela
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8083/api/escuelas
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {"nombre":"Instituto Tecnologico de Oaxaca"}   
+}
