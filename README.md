@@ -1,292 +1,305 @@
-# SRMact3_t4 — Actividad 3: CRUD con Spring Boot, JPA y MySQL
+# SRMact3_t4 — Actividad 3: CRUD en Spring Boot y relaciones JPA
 
-**Estudiante:** Sandoval Reyes Miguel  
-**Materia:** Programación Web  
-**Java:** 17 · **Spring Boot:** 4.1.0 · **Gradle:** wrapper incluido  
-**Puerto de esta actividad:** 8083 (verificar que esté libre)  
-**Importante:** Es una API REST probada con Bruno, sin frontend separado. La consigna permite hacerlo solo con REST.
+**Autor:** Sandoval Reyes Miguel  
+**Asignatura:** Programación Web  
+**Proyecto:** SRMact3_t4  
+**Tipo de aplicación:** API REST desarrollada en Spring Boot, sin frontend separado  
+**Repositorio:** https://github.com/miguelsandovalreyeskgll/SRMact3_t4
 
-## 1. ¿Qué hace?
+## 1. Descripción general
 
-Permite **crear, consultar, actualizar y eliminar alumnos de MySQL**, relacionados con una escuela.
+El proyecto desarrolla una API REST para administrar alumnos y escuelas, utilizando **Spring Boot**, **Spring Data JPA** y una **base de datos MySQL real**. Se implementa un CRUD completo sobre la entidad `Alumno`, que permite **crear, consultar, actualizar y eliminar** registros mediante peticiones HTTP probadas con Bruno.
 
-- Una `Escuela` puede tener **muchos** `Alumno`: `@OneToMany`.
-- Cada `Alumno` pertenece a **una** `Escuela`: `@ManyToOne`.
-- Llave foránea: `alumno.escuela_id → escuela.id`.
-- El JSON devuelve `escuelaNombre`, no solamente el identificador.
-- No utiliza una lista temporal: se guarda en MySQL mediante `JpaRepository.save()`.
+El sistema contiene dos entidades relacionadas: `Escuela` y `Alumno`. Cada alumno está asociado a una escuela y una escuela puede contar con varios alumnos. Los cambios se almacenan de forma persistente en MySQL, de modo que no se pierden al actualizar el navegador o reiniciar la aplicación.
+
+La solución se desarrolló sin un proyecto de frontend independiente. Las operaciones se ejecutan mediante la API y se verifican tanto con **Bruno** como con consultas SQL.
+
+## 2. Objetivo
+
+Implementar y desplegar un CRUD completo en Spring Boot conectado a MySQL, utilizando dos entidades con una relación uno a muchos, separando la aplicación en capas de **Controller, Service y Repository**, y verificando las operaciones desde el equipo local y desde un VPS.
+
+## 3. Tecnologías utilizadas
+
+| Tecnología | Función |
+|---|---|
+| Java 17 (compatibilidad del proyecto) | Lenguaje de programación |
+| Spring Boot 4.1.0 | Configuración y ejecución de la aplicación |
+| Spring Web MVC | Controladores y endpoints REST |
+| Spring Data JPA / Hibernate | Mapeo de entidades y persistencia |
+| MySQL 8 | Base de datos relacional |
+| Gradle Wrapper | Compilación y gestión de dependencias |
+| Bruno | Pruebas de solicitudes HTTP |
+| Git y GitHub | Control de versiones y repositorio |
+| Ubuntu 24.04 y systemd | Ejecución del proyecto en el VPS |
+
+## 4. Modelo de datos y relación entre entidades
+
+Las entidades se representan mediante las clases `Escuela.java` y `Alumno.java`, ubicadas en el paquete `modelo`.
 
 ```text
-ESCUELA                            ALUMNO
-+--------------------------+       +-----------------------+
-| id (PK)                  | 1 --N | id (PK)               |
-| nombre                   |       | nombre                |
-+--------------------------+       | escuela_id (FK)       |
-                                   +-----------------------+
+ESCUELA                          ALUMNO
+------------------               ------------------
+id (PK)                 1 ─── N  id (PK)
+nombre                           nombre
+                                 escuela_id (FK)
 ```
 
-## 2. Archivos más importantes y para qué sirven
+La relación implementada es **uno a muchos (1:N)**:
 
-```text
-src/main/java/com/srm/actividad3/
-  Actividad3Application.java       → Inicia Spring Boot
-  modelo/Escuela.java              → Entidad @Entity / @OneToMany
-  modelo/Alumno.java               → Entidad @Entity / @ManyToOne
-  dto/AlumnoDTO.java               → Datos que entran/salen en JSON
-  repositorio/EscuelaRepository.java → Acceso a tabla escuela
-  repositorio/AlumnoRepository.java  → Acceso a tabla alumno
-  servicio/EscuelaService.java     → Validar y guardar escuelas
-  servicio/AlumnoService.java      → Lógica del CRUD y relación
-  controlador/EscuelaController.java → Endpoints de escuela
-  controlador/AlumnoController.java  → CRUD REST de alumno
-src/main/resources/application.properties → Puerto y MySQL (sin contraseñas)
-sql/crear_base.sql                 → Crear la base y el usuario
-sql/comprobar_relacion.sql         → Consultar la llave foránea JOIN
-bruno/                             → Colección importable en Bruno
-PRUEBAS_BRUNO.txt                  → Ejemplos de cada petición
-```
+- `Escuela.java` declara `@Entity` y `@OneToMany(mappedBy = "escuela")`.
+- `Alumno.java` declara `@Entity`, `@ManyToOne` y `@JoinColumn(name = "escuela_id")`.
+- La columna `alumno.escuela_id` funciona como llave foránea hacia `escuela.id`.
+- La respuesta de la API incluye `escuelaId` y `escuelaNombre`, permitiendo identificar claramente la escuela asociada a cada alumno.
 
-**Flujo a explicar a la profesora:** Bruno → Controller → Service → Repository → MySQL. El DTO transporta los datos; la entidad representa la tabla de la base de datos.
-
-## 3. Preparar MySQL en el VPS (ya lo tienes instalado)
-
-Conéctate por SSH:
-
-```bash
-ssh root@167.99.15.140
-sudo mysql
-```
-
-Dentro de MySQL, **sustituye la clave de ejemplo por una nueva contraseña segura**:
-
-```sql
-CREATE DATABASE IF NOT EXISTS srmact3_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS 'srmact3'@'127.0.0.1' IDENTIFIED BY 'CAMBIA_AQUI_POR_UNA_CLAVE_SEGURA';
-GRANT ALL PRIVILEGES ON srmact3_db.* TO 'srmact3'@'127.0.0.1';
-EXIT;
-```
-
-Comprobar acceso con el usuario de la actividad, sin usar root para la aplicación:
-
-```bash
-mysql -h 127.0.0.1 -u srmact3 -p srmact3_db
-```
-
-Escribe la contraseña y luego `EXIT;`. **Solo creas la base y el usuario manualmente**; `spring.jpa.hibernate.ddl-auto=update` crea las tablas `escuela` y `alumno` cuando arranques el proyecto.
-
-No pongas la contraseña real en `application.properties`, archivos de GitHub ni capturas.
-
-## 4. Ejecutar en localhost desde VS Code (CMD)
-
-Opción A: instalar MySQL también en tu PC, crear `srmact3_db` y el usuario con el mismo SQL de arriba, y ejecutar:
-
-```cmd
-set "DB_USER=srmact3"
-set "DB_PASSWORD=TU_CONTRASENA_MYSQL_LOCAL"
-gradlew.bat bootRun
-```
-
-Opción B: **si SOLO tienes MySQL en el VPS, no necesitas instalarlo en Windows**. Abre **dos terminales CMD**:
-
-**Terminal 1** (túnel SSH seguro a la base del VPS; déjala abierta):
-
-```cmd
-ssh -L 3307:127.0.0.1:3306 root@167.99.15.140
-```
-
-**Terminal 2**, dentro de `SRMact3_t4`, en CMD:
-
-```cmd
-set "DB_URL=jdbc:mysql://127.0.0.1:3307/srmact3_db"
-set "DB_USER=srmact3"
-set "DB_PASSWORD=TU_CONTRASENA_MYSQL_DEL_VPS"
-gradlew.bat bootRun
-```
-
-En la opción B, **el código corre en tu PC pero los datos van a MySQL del VPS por SSH**. Es útil para practicar sin abrir el puerto MySQL a internet. Esto modifica datos de la base del VPS, así que utiliza registros de prueba.
-
-**La primera vez Gradle debe descargar dependencias por internet.** Abre http://localhost:8083/api/escuelas cuando diga que Tomcat inició. Ctrl+C detiene Spring Boot.
-
-## 5. Probar con Bruno (en local o VPS)
-
-Abre la carpeta `bruno/` como colección en Bruno y selecciona el ambiente `LOCAL` o `VPS`. También puedes crear solicitudes manualmente.
-
-| Paso | Método | Ruta | Body |
-|---|---|---|---|
-| 1 | POST | `/api/escuelas` | `{"nombre":"Instituto Tecnologico de Oaxaca"}` |
-| 2 | GET | `/api/escuelas` | — |
-| 3 | POST | `/api/alumnos` | `{"nombre":"Ana Lopez","escuelaId":1}` |
-| 4 | GET | `/api/alumnos` | — |
-| 5 | GET | `/api/alumnos/1` | — |
-| 6 | PUT | `/api/alumnos/1` | `{"nombre":"Ana Lopez Actualizada","escuelaId":1}` |
-| 7 | DELETE | `/api/alumnos/1` | — |
-
-**Importante:** los IDs `1` son ejemplos. Usa los IDs reales que devuelvan los POST. En POST/PUT selecciona **Body → JSON** (`Content-Type: application/json`).
-
-Dirección local: `http://localhost:8083`  
-Dirección VPS (solo tras desplegar y abrir el puerto): `http://167.99.15.140:8083`
-
-Después del POST, por ejemplo, la API devuelve algo parecido a:
-
-```json
-{"id":1,"nombre":"Ana Lopez","escuelaId":1,"escuelaNombre":"Instituto Tecnologico de Oaxaca"}
-```
-
-Esto **demuestra la relación**: devuelve el nombre de la escuela, no solo el ID.
-
-Respuestas: POST `201 Created`; GET/PUT `200 OK`; DELETE `204 No Content`; ID inexistente `404`; datos inválidos `400`.
-
-## 6. Comprobar MySQL y la persistencia
-
-En el VPS:
-
-```bash
-sudo mysql
-```
+La relación puede comprobarse mediante la siguiente consulta:
 
 ```sql
 USE srmact3_db;
 SELECT a.id, a.nombre AS alumno, e.nombre AS escuela
-FROM alumno a INNER JOIN escuela e ON a.escuela_id = e.id;
-SHOW CREATE TABLE alumno;
+FROM alumno a
+INNER JOIN escuela e ON a.escuela_id = e.id;
 ```
 
-La primera consulta prueba la relación. La segunda muestra la llave foránea. Reinicia Spring Boot y repite `GET /api/alumnos`: los registros todavía deben estar allí (si no los eliminaste).
+![Figura 6. Evidencia de registros y relación entre alumnos y escuelas en MySQL.](docs/capturas/img6.png)
 
-## 7. Compilar el JAR desde CMD en Windows
-
-```cmd
-gradlew.bat bootJar
-```
-
-Archivo generado: `build/libs/SRMact3_t4-0.0.1-SNAPSHOT.jar`.
-
-## 8. Subir al VPS SIN detener las Actividades 1 y 2
-
-Antes de elegir el puerto:
-
-```bash
-sudo ss -ltnp | grep -E ':8082|:9082|:8083'
-```
-
-**8083 tiene que estar disponible;** si está ocupado, cambia `PORT` al iniciar y usa ese nuevo puerto en los enlaces.
-
-**En CMD de Windows, desde la carpeta del proyecto y después de compilar**:
-
-```cmd
-ssh root@167.99.15.140 "mkdir -p /var/www/SRMact3_t4"
-scp build/libs/SRMact3_t4-0.0.1-SNAPSHOT.jar root@167.99.15.140:/var/www/SRMact3_t4/
-```
-
-**En el VPS**:
-
-```bash
-ssh root@167.99.15.140
-sudo nano /etc/srmact3.env
-```
-
-Escribe estas dos líneas en ese archivo (con tu clave real, sin comillas si no contiene caracteres especiales):
+## 5. Estructura del proyecto
 
 ```text
-DB_USER=srmact3
-DB_PASSWORD=TU_CONTRASENA_MYSQL
+SRMact3_t4/
+├── src/main/java/com/srm/actividad3/
+│   ├── Actividad3Application.java
+│   ├── modelo/
+│   │   ├── Escuela.java
+│   │   └── Alumno.java
+│   ├── dto/
+│   │   └── AlumnoDTO.java
+│   ├── repositorio/
+│   │   ├── EscuelaRepository.java
+│   │   └── AlumnoRepository.java
+│   ├── servicio/
+│   │   ├── EscuelaService.java
+│   │   └── AlumnoService.java
+│   └── controlador/
+│       ├── EscuelaController.java
+│       └── AlumnoController.java
+├── src/main/resources/application.properties
+├── bruno/
+├── sql/
+├── docs/capturas/
+├── build.gradle
+├── gradlew.bat
+└── README.md
 ```
 
-Guarda (`Ctrl+O`, Enter, `Ctrl+X`) y protege el archivo:
+### Organización por capas
 
-```bash
-sudo chmod 600 /etc/srmact3.env
+**Controller:** recibe las solicitudes HTTP y envía las respuestas de la API. Los endpoints están definidos en `AlumnoController.java` y `EscuelaController.java`.
+
+**Service:** contiene la lógica de negocio, valida los datos, comprueba la existencia de la escuela y realiza las operaciones requeridas. Se implementa en `AlumnoService.java` y `EscuelaService.java`.
+
+**Repository:** permite consultar, insertar, actualizar y eliminar registros mediante las interfaces de Spring Data JPA que extienden `JpaRepository`.
+
+**DTO:** `AlumnoDTO.java` es un `record` de Java utilizado para intercambiar los datos del alumno (`id`, `nombre`, `escuelaId` y `escuelaNombre`) sin exponer directamente toda la entidad JPA.
+
+El flujo de una petición se organiza así:
+
+```text
+Cliente Bruno → Controller → Service → Repository → MySQL
 ```
 
-Para que el proyecto se reinicie automáticamente si cae o reinicia el VPS, crea este servicio:
+## 6. Endpoints implementados
 
-```bash
-sudo nano /etc/systemd/system/srmact3.service
+### Escuela
+
+| Método HTTP | Endpoint | Descripción |
+|---|---|---|
+| GET | `/api/escuelas` | Consultar todas las escuelas |
+| POST | `/api/escuelas` | Registrar una escuela |
+
+### Alumno — CRUD completo
+
+| Operación | Método HTTP | Endpoint | Descripción |
+|---|---|---|---|
+| Create | POST | `/api/alumnos` | Registrar un alumno y asignarle una escuela |
+| Read | GET | `/api/alumnos` | Consultar todos los alumnos |
+| Read | GET | `/api/alumnos/{id}` | Consultar un alumno mediante su ID |
+| Update | PUT | `/api/alumnos/{id}` | Modificar el nombre o la escuela de un alumno |
+| Delete | DELETE | `/api/alumnos/{id}` | Eliminar un alumno existente |
+
+### Ejemplos de cuerpos JSON
+
+**Registrar una escuela — POST `/api/escuelas`:**
+
+```json
+{
+  "nombre": "Instituto Tecnologico de Oaxaca"
+}
 ```
 
-Contenido:
+**Registrar un alumno — POST `/api/alumnos`:**
 
-```ini
-[Unit]
-Description=SRM Actividad 3 - Spring Boot
-After=network.target mysql.service
-
-[Service]
-User=www-data
-WorkingDirectory=/var/www/SRMact3_t4
-EnvironmentFile=/etc/srmact3.env
-ExecStart=/usr/bin/java -Xmx256m -jar /var/www/SRMact3_t4/SRMact3_t4-0.0.1-SNAPSHOT.jar
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
+```json
+{
+  "nombre": "Axel Eliel",
+  "escuelaId": 1
+}
 ```
 
-Activar y verificar:
+**Actualizar un alumno — PUT `/api/alumnos/{id}`:**
 
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now srmact3
-sudo systemctl status srmact3
-curl http://localhost:8083/api/escuelas
+```json
+{
+  "nombre": "Ana Lopez",
+  "escuelaId": 1
+}
 ```
 
-Para ver errores: `sudo journalctl -u srmact3 -n 60 --no-pager`.
+Los códigos HTTP utilizados incluyen `200 OK` para consultas y actualizaciones, `201 Created` para creaciones y `204 No Content` para eliminaciones exitosas. Cuando se solicita un alumno inexistente, la API devuelve `404 Not Found`.
 
-Abrir el puerto **solo si está autorizado y utilizas UFW**:
+Los valores de ID empleados en los ejemplos deben sustituirse por los identificadores reales generados en MySQL.
 
-```bash
-sudo ufw allow 8083/tcp
-```
+## 7. Evidencias del CRUD en el entorno local
 
-También comprueba el firewall del proveedor del VPS. Si la API responde localmente pero no desde fuera, revisa esos dos controles.
+El proyecto se ejecutó localmente en `http://localhost:8083`, conectado a la base de datos MySQL alojada en el VPS mediante un túnel SSH. Las siguientes evidencias corresponden a distintas etapas de las pruebas.
 
-**No toques los procesos ni carpetas de las actividades anteriores.**
+### 7.1. Creación de una escuela (POST)
 
-## 9. Publicar en GitHub
+Se envió un objeto JSON desde Bruno para registrar una escuela. La respuesta `201 Created` confirma la creación del recurso.
 
-Crea un repositorio **vacío** llamado `SRMact3_t4`, sin README remoto inicial para evitar historiales independientes. El proyecto ya trae README y `.gitignore`.
+![Figura 1. POST para crear una escuela desde Bruno.](docs/capturas/img1.png)
+
+### 7.2. Creación de un alumno (POST)
+
+Se registró un alumno indicando su nombre y el identificador de una escuela previamente creada.
+
+![Figura 2. POST para registrar un alumno desde Bruno.](docs/capturas/img2.png)
+
+### 7.3. Consulta de alumno (GET)
+
+Se recuperó la información de un alumno mediante su identificador. En la respuesta se incluyen los datos de la escuela relacionada.
+
+![Figura 3. GET para consultar un alumno por ID.](docs/capturas/img3.png)
+
+### 7.4. Actualización de alumno (PUT)
+
+Se modificó el nombre del alumno mediante una solicitud PUT. La respuesta `200 OK` muestra los datos actualizados.
+
+![Figura 4. PUT para actualizar el nombre de un alumno.](docs/capturas/img4.png)
+
+Se realizó posteriormente una consulta GET para corroborar la modificación.
+
+![Figura 5. GET para comprobar el nombre actualizado del alumno.](docs/capturas/img5.png)
+
+### 7.5. Eliminación de alumno (DELETE)
+
+Se envió una solicitud DELETE para eliminar el alumno con el ID utilizado en la prueba. El servidor respondió `204 No Content`.
+
+![Figura 7. DELETE exitoso desde Bruno.](docs/capturas/img7.png)
+
+La consulta SQL posterior mostró que la tabla `alumno` quedó vacía, de acuerdo con los registros presentes en ese momento.
+
+![Figura 8. Comprobación en MySQL después de eliminar al alumno.](docs/capturas/img8.png)
+
+## 8. Despliegue y pruebas desde el VPS
+
+La aplicación se compiló con Gradle mediante `gradlew.bat bootJar` y se desplegó como archivo ejecutable JAR en el VPS con **Ubuntu 24.04**. Se creó el servicio `srmact3.service` de **systemd**, configurado para ejecutar Spring Boot en el **puerto 8084**.
+
+La configuración de MySQL se establece mediante variables de entorno (`DB_URL`, `DB_USER` y `DB_PASSWORD`) sin publicar las credenciales en GitHub. La conexión desde la aplicación desplegada se realiza al servicio MySQL del mismo VPS mediante `127.0.0.1:3306`.
+
+**Dirección base pública:** `http://167.99.15.140:8084`
+
+**Consulta de escuelas:** http://167.99.15.140:8084/api/escuelas  
+**Consulta de alumnos:** http://167.99.15.140:8084/api/alumnos
+
+### 8.1. Consulta de escuelas desde internet
+
+La petición GET al VPS devolvió las escuelas almacenadas en MySQL. Durante las pruebas se habían creado dos registros con el mismo nombre y diferentes identificadores.
+
+![Figura 9. Respuesta pública de GET /api/escuelas desde el VPS.](docs/capturas/img9.png)
+
+### 8.2. Consulta de alumnos desde internet
+
+La petición GET devolvió una lista vacía porque el alumno de la prueba local ya había sido eliminado. Este resultado demuestra que el endpoint respondió correctamente; no representa un error del servidor.
+
+![Figura 10. Respuesta pública de GET /api/alumnos antes de la siguiente creación.](docs/capturas/img10.png)
+
+### 8.3. Registro remoto de un alumno y persistencia
+
+Desde Bruno se realizó un POST directamente contra la IP pública del VPS. El servidor respondió `201 Created` al registrar al alumno **Axel Eliel** asociado a la escuela con ID `1`.
+
+![Figura 11. POST público al VPS mediante Bruno.](docs/capturas/img11.png)
+
+Finalmente, se verificó en la terminal MySQL del VPS que el registro efectivamente estaba almacenado en la tabla `alumno`. En esta prueba MySQL asignó al alumno el identificador `3`.
+
+![Figura 12. Registro persistente en MySQL después del POST remoto.](docs/capturas/img12.png)
+
+## 9. Ejecución y verificación
+
+### Entorno local
+
+En Windows, el proyecto se ejecuta desde su carpeta raíz con el Gradle Wrapper. Cuando MySQL se encuentra solamente en el VPS, se puede establecer un túnel SSH desde otra terminal de Windows:
 
 ```cmd
-git init
-git add .
-git commit -m "Actividad 3 CRUD Spring Boot MySQL"
-git branch -M main
-git remote add origin URL_HTTPS_DE_TU_REPOSITORIO
-git push -u origin main
+ssh -N -L 3307:127.0.0.1:3306 root@167.99.15.140
 ```
 
-Sustituye `URL_HTTPS_DE_TU_REPOSITORIO` por el enlace que GitHub muestre en **Code → HTTPS**. No se incluye contraseña de MySQL en este repositorio.
+En un CMD distinto, dentro de `SRMact3_t4`, se configuran las variables y se ejecuta Spring Boot:
 
-## 10. Capturas REALES para el README antes de entregar
-
-Debes obtenerlas de **tu aplicación corriendo**. No vienen inventadas en este ZIP:
-
-1. Bruno POST `/api/escuelas`.
-2. Bruno POST `/api/alumnos` con `escuelaNombre`.
-3. Bruno GET `/api/alumnos`.
-4. Bruno PUT `/api/alumnos/{id}`.
-5. Bruno DELETE `/api/alumnos/{id}` con `204`.
-6. SQL JOIN que muestre `alumno` y `escuela`.
-7. Respuesta desde el VPS `http://167.99.15.140:8083/api/alumnos`.
-8. `systemctl status srmact3` y los puertos de Act1/Act2 sin interferencia.
-
-Guarda las imágenes en `docs/capturas/`, luego insértalas en este README con Markdown, por ejemplo:
-
-```markdown
-![GET alumnos](docs/capturas/get-alumnos.png)
+```cmd
+set "DB_URL=jdbc:mysql://127.0.0.1:3307/srmact3_db"
+set "DB_USER=srmact3"
+set "DB_PASSWORD=CONTRASENA_MYSQL_CONFIGURADA"
+gradlew.bat bootRun
 ```
 
-## 11. Respuestas para las preguntas de Classroom
+Las variables establecidas con `set` tienen alcance solamente en la sesión de CMD correspondiente; se deben configurar de nuevo al abrir otra terminal. El valor de la contraseña mostrado es un marcador de posición y no debe subirse al repositorio.
 
-**a) ¿Qué entidades y qué relación?** Elegí `Escuela` y `Alumno`. Una escuela tiene muchos alumnos (`@OneToMany`) y cada alumno pertenece a una escuela (`@ManyToOne`). La llave foránea `escuela_id` está en `alumno`.
+### Entorno VPS
 
-**b) ¿Qué es un Repository y su ventaja?** Es una interfaz que extiende `JpaRepository` y permite consultar, guardar, actualizar y eliminar registros con métodos como `findAll()`, `findById()`, `save()` y `delete()`, sin escribir SQL para cada operación.
+El proyecto se encuentra en `/var/www/SRMact3_t4/`. Los siguientes comandos permiten revisar su funcionamiento:
 
-**c) ¿Por qué separar Service y Controller?** El Controller recibe la petición HTTP; el Service valida los datos, localiza la escuela y realiza la lógica del negocio. Así el código es más claro y fácil de mantener.
+```bash
+sudo systemctl status srmact3 --no-pager
+sudo ss -ltnp | grep ':8084'
+curl -i http://127.0.0.1:8084/api/escuelas
+curl -i http://127.0.0.1:8084/api/alumnos
+```
 
-**d) Enlaces:** incluye el repositorio de GitHub **real después de publicarlo**, y el enlace del VPS **después de verificar que funcione**, por ejemplo `http://167.99.15.140:8083/api/alumnos`. Incluye la colección dentro de `bruno/`.
+La base de datos puede verificarse con:
 
-## Nota de seguridad
+```sql
+USE srmact3_db;
+SHOW TABLES;
+SELECT * FROM escuela;
+SELECT * FROM alumno;
+SELECT a.nombre AS alumno, e.nombre AS escuela
+FROM alumno a INNER JOIN escuela e ON a.escuela_id = e.id;
+```
 
-La API de práctica no incluye autenticación. No introduzcas datos personales reales. Si la dejas expuesta a internet para evaluar, cualquier visitante con acceso al puerto podría enviar POST/PUT/DELETE. Limita el acceso a la red o IP autorizadas cuando sea posible y desactívala después de la evaluación si ya no se necesita.
+El proyecto mantiene un directorio, un puerto y un servicio independientes de los utilizados por las actividades anteriores.
+
+## 10. Respuestas a las preguntas de la actividad
+
+**a) ¿Qué dos entidades se eligieron y qué relación se implementó?**  
+Se eligieron `Escuela` y `Alumno`, con una relación **uno a muchos (1:N)**. Una escuela puede tener varios alumnos, mientras que cada alumno pertenece a una sola escuela. La relación se representa con `@OneToMany` y `@ManyToOne` y se almacena mediante la llave foránea `escuela_id` de la tabla `alumno`.
+
+**b) ¿Qué es un Repository en Spring Data JPA y qué ventaja tiene sobre escribir las consultas SQL?**  
+Un Repository es una interfaz para acceder a datos mediante JPA. En el proyecto se utilizaron `EscuelaRepository` y `AlumnoRepository`, que extienden `JpaRepository`. Esto proporciona operaciones habituales como `save`, `findAll`, `findById` y `delete`, reduciendo la necesidad de escribir consultas SQL manuales para el CRUD básico.
+
+**c) ¿Por qué conviene separar la lógica de negocio en una capa Service?**  
+La capa Service concentra validaciones y operaciones de negocio, como comprobar que exista la escuela antes de asociarla a un alumno. Esta separación permite que el Controller se dedique a recibir y responder solicitudes HTTP y que el Repository maneje el acceso a la base de datos. Así se facilita el mantenimiento, la organización y las pruebas de la aplicación.
+
+**d) Enlaces de GitHub, VPS y pruebas:**  
+- **Repositorio GitHub:** https://github.com/miguelsandovalreyeskgll/SRMact3_t4
+- **VPS — escuelas:** http://167.99.15.140:8084/api/escuelas
+- **VPS — alumnos:** http://167.99.15.140:8084/api/alumnos
+- **Colección Bruno:** carpeta [`bruno/`](bruno/), con las peticiones GET, POST, PUT y DELETE.
+
+## 11. Conclusión
+
+El proyecto implementa un CRUD funcional de alumnos utilizando Spring Boot y Spring Data JPA, con persistencia real en MySQL y una relación entre dos entidades. Las pruebas locales permitieron verificar la creación, consulta, actualización y eliminación de registros. El despliegue al VPS permitió comprobar, además, el acceso público a la API y el almacenamiento remoto de nuevos registros. El desarrollo emplea una estructura organizada en Controller, Service, Repository y DTO, facilitando la comprensión y el mantenimiento del código.
+
+---
+
+**Elaborado por:** Sandoval Reyes Miguel  
+**Asignatura:** Programación Web
