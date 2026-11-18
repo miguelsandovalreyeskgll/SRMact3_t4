@@ -1,6 +1,6 @@
 # SRMact3_t4 — Actividad 3: CRUD en Spring Boot y relaciones JPA
 
-**Autor:** Sandoval Reyes Miguel  
+**Autor:** Sandoval Reyes Miguel.  
 **Asignatura:** Programación Web  
 **Proyecto:** SRMact3_t4  
 **Tipo de aplicación:** API REST desarrollada en Spring Boot, sin frontend separado  
